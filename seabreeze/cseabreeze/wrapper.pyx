@@ -13,6 +13,7 @@ from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
 DEF SBMAXBUFLEN = 32
 DEF SBMAXDBUFLEN = 256
 
+
 class SeaBreezeError(Exception):
 
     def __init__(self, message=None, error_code=None):
@@ -627,6 +628,64 @@ def device_get_spectrum_processing_feature_id(SeaBreezeDevice device not None):
                 "%d spectrum_processing features. The code expects it to have 0 or 1. "
                 "Please file a bug report including a description of your device." % N)
 
+
+def device_get_raw_usb_bus_access_feature_id(SeaBreezeDevice device not None):
+    cdef int N
+    cdef int error_code
+    cdef long featureID
+
+    N = csb.sbapi_get_number_of_raw_usb_bus_access_features(device.handle, &error_code)
+    if error_code != 0:
+        raise SeaBreezeError(error_code=error_code)
+    if N == 0:
+        return []
+    elif N == 1:
+        csb.sbapi_get_raw_usb_bus_access_features(device.handle, &error_code, &featureID, 1)
+        if error_code != 0:
+            raise SeaBreezeError(error_code=error_code)
+        return [featureID]
+    else:
+        raise SeaBreezeError("This should not have happened. Apparently this device has "
+                "%d spectrum_processing features. The code expects it to have 0 or 1. "
+                "Please file a bug report including a description of your device." % N)
+
+def device_get_raw_usb_endpoint_primary_out(SeaBreezeDevice device not None):
+    cdef int error_code
+    endpoint = csb.sbapi_get_device_usb_endpoint_primary_out(device.handle, &error_code)
+    if error_code != 0:
+        raise SeaBreezeError("Failed to get Primary Out USB endpoint", error_code=error_code)
+    return endpoint
+
+def device_get_raw_usb_endpoint_primary_in(SeaBreezeDevice device not None):
+    cdef int error_code
+    endpoint = csb.sbapi_get_device_usb_endpoint_primary_in(device.handle, &error_code)
+    if error_code != 0:
+        raise SeaBreezeError("Failed to get Primary In USB endpoint", error_code=error_code)
+    return endpoint
+
+def device_get_raw_usb_endpoint_secondary_out(SeaBreezeDevice device not None):
+    cdef int error_code
+    endpoint = csb.sbapi_get_device_usb_endpoint_secondary_out(device.handle, &error_code)
+    if error_code != 0:
+        raise SeaBreezeError("Failed to get Secondary Out USB endpoint", error_code=error_code)
+    return endpoint
+
+def device_get_raw_usb_endpoint_secondary_in(SeaBreezeDevice device not None):
+    cdef int error_code
+    endpoint = csb.sbapi_get_device_usb_endpoint_secondary_in(device.handle, &error_code)
+    if error_code != 0:
+        raise SeaBreezeError("Failed to get Secondary In USB endpoint", error_code=error_code)
+    return endpoint
+
+def device_usb_write(SeaBreezeDevice device not None, long featureID, int usb_out_endpoint, unsigned char[::1] out):
+    cdef int error_code
+    cdef int bytes_written
+    cdef int out_length = out.size
+    bytes_written = csb.sbapi_raw_usb_bus_access_write(device.handle, featureID, &error_code, &out[0], out_length, usb_out_endpoint)
+    if error_code != 0:
+         raise SeaBreezeError(error_code=error_code)
+    return bytes_written
+
 def spectrum_processing_set_boxcar_width(SeaBreezeDevice device not None, long featureID, unsigned char boxcar_width):
     cdef int error_code
     with nogil:
@@ -658,3 +717,4 @@ def spectrum_processing_get_scans_to_average(SeaBreezeDevice device not None, lo
     if scans_to_average < 1:
         raise SeaBreezeError(error_code=error_code)
     return scans_to_average
+
